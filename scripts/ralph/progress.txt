@@ -11,6 +11,10 @@ Branch: ralph/building30-frontend
 - **Env vars**: `.env.local` (gitignored via `*.local`), `.env.example` committed
 - **API client**: `createApiClient(getToken)` factory in `src/lib/api-client.ts` — pass `getAccessTokenSilently` from Auth0; returns `{get, post, put, delete}` methods
 - **Types**: All shared API types in `src/lib/types.ts` — Card (summary), CardDetail (full), ProjectContext, ServerEvent, TagStat, ApiError, PaginatedResponse
+- **Hooks pattern**: `useApiClient()` hook in `src/lib/hooks/use-api-client.ts` returns memoized API client; all query/mutation hooks use it
+- **Query keys**: `["cards", params]` for lists, `["card", id]` for detail, `["views", name]` for view endpoints, `["tags"]` for tags
+- **Mutations**: All card mutations invalidate `["cards"]` and `["views"]`; detail mutations also invalidate `["card", id]`
+- **SSE**: `useEventStream()` connects when authenticated, invalidates queries on card_upsert/card_delete events
 ---
 
 ## 2026-03-13 - US-001
@@ -37,4 +41,18 @@ Branch: ralph/building30-frontend
   - Server uses two card levels: CardSummary (list) and CardDetail (full) — mapped to Card/CardDetail in types
   - Optional fields in server responses use `skip_serializing_if` — they're omitted, not null
   - SSE events are simple `{type, id}` payloads, plus a `hello` event on connect
+---
+
+## 2026-03-13 - US-003
+- Created `src/lib/hooks/use-api-client.ts` — memoized API client hook using Auth0's `getAccessTokenSilently`
+- Created `src/lib/hooks/use-cards.ts` — `useCards(params?)` with query string builder, `useCard(id)` with enabled guard
+- Created `src/lib/hooks/use-mutations.ts` — `useCreateCard`, `useUpdateCard`, `useDeleteCard`, `useMarkDone`, `useUpdateBody`, `useUpdateField`
+- Created `src/lib/hooks/use-event-stream.ts` — SSE via `@microsoft/fetch-event-source`, invalidates card/view queries on events
+- Created `src/lib/hooks/use-views.ts` — `useToday`, `useNext`, `useAreas`, `useTags` query hooks
+- Files changed: src/lib/hooks/use-api-client.ts, src/lib/hooks/use-cards.ts, src/lib/hooks/use-mutations.ts, src/lib/hooks/use-event-stream.ts, src/lib/hooks/use-views.ts
+- **Learnings for future iterations:**
+  - `useApiClient()` as a thin memoized wrapper keeps hook code clean — all hooks just call `const api = useApiClient()`
+  - View endpoints live at `/api/views/{name}`, not `/api/{name}`
+  - `useAreas()` returns `Record<string, Card[]>` (grouped by area tag), not a paginated response
+  - SSE `fetchEventSource` retries automatically on error — no custom retry logic needed
 ---
