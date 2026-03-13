@@ -2,3 +2,39 @@
 Started: Server phase complete and tested. Building frontend.
 Branch: ralph/building30-frontend
 ---
+
+## Codebase Patterns
+- **Tailwind v4**: Use `@import "tailwindcss"` in CSS, `@tailwindcss/vite` plugin in vite.config.ts (not PostCSS)
+- **Vite v7**: Downgraded from v8 scaffold due to `@tailwindcss/vite` peer dep requiring `vite@^5 || ^6 || ^7`
+- **Auth0**: Configured in main.tsx via `Auth0Provider` wrapping entire app, uses `VITE_` env vars
+- **TanStack Query**: `QueryClientProvider` wrapping app in main.tsx
+- **Env vars**: `.env.local` (gitignored via `*.local`), `.env.example` committed
+- **API client**: `createApiClient(getToken)` factory in `src/lib/api-client.ts` — pass `getAccessTokenSilently` from Auth0; returns `{get, post, put, delete}` methods
+- **Types**: All shared API types in `src/lib/types.ts` — Card (summary), CardDetail (full), ProjectContext, ServerEvent, TagStat, ApiError, PaginatedResponse
+---
+
+## 2026-03-13 - US-001
+- Scaffolded Vite + React 19 + TypeScript project
+- Installed: @auth0/auth0-react, @tanstack/react-query, @microsoft/fetch-event-source, lucide-react, tailwindcss, @tailwindcss/vite
+- Configured Auth0Provider and QueryClientProvider in main.tsx
+- Created .env.example and .env.local with correct Auth0 config
+- Cleaned up scaffold boilerplate (App.css, assets, etc.)
+- Files changed: package.json, vite.config.ts, src/main.tsx, src/App.tsx, src/index.css, src/vite-env.d.ts, .env.example, .env.local, .gitignore
+- **Learnings for future iterations:**
+  - Vite 8 (latest scaffold) breaks @tailwindcss/vite — downgraded to Vite 7
+  - Scaffold in tmp dir and copy if target dir is not empty
+  - `npm create vite@latest . -- --template react-ts` now uses Vite 8 by default
+---
+
+## 2026-03-13 - US-002
+- Created `src/lib/types.ts` with all shared API types matching server response shapes
+- Created `src/lib/api-client.ts` with Auth0 JWT-injecting fetch wrapper
+- Types: Card, CardDetail, ProjectContext, ServerEvent, TagStat, ApiError, PaginatedResponse, UpdateResponse, etc.
+- API client uses factory pattern: `createApiClient(getToken)` returns typed `{get, post, put, delete}`
+- Error handling: parses `{error: {code, message, status}}` envelope, throws `ApiClientError`
+- Files changed: src/lib/types.ts, src/lib/api-client.ts
+- **Learnings for future iterations:**
+  - Server uses two card levels: CardSummary (list) and CardDetail (full) — mapped to Card/CardDetail in types
+  - Optional fields in server responses use `skip_serializing_if` — they're omitted, not null
+  - SSE events are simple `{type, id}` payloads, plus a `hello` event on connect
+---

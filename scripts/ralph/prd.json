@@ -20,7 +20,7 @@
         "npm run build succeeds"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "This is a fresh repo. Run npm create vite@latest . -- --template react-ts to scaffold in place."
     },
     {
@@ -36,7 +36,7 @@
         "npm run build succeeds"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Card type should match the server response shape from GET /api/cards"
     },
     {
