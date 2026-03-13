@@ -8,10 +8,12 @@ import {
   Clock,
   Lightbulb,
   BookOpen,
+  Zap,
 } from "lucide-react";
 
 const navItems = [
   { to: "/inbox", label: "Inbox", icon: Inbox },
+  { to: "/action", label: "Action", icon: Zap },
   { to: "/today", label: "Today", icon: Sun },
   { to: "/next", label: "Next", icon: ArrowRight },
   { to: "/projects", label: "Projects", icon: FolderKanban },

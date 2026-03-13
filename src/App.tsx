@@ -8,6 +8,7 @@ import { AreasView } from "./pages/AreasView";
 import { WaitingView } from "./pages/WaitingView";
 import { SomedayView } from "./pages/SomedayView";
 import { ReferenceView } from "./pages/ReferenceView";
+import { ActionCenter } from "./pages/ActionCenter";
 
 function Layout() {
   return (
@@ -28,6 +29,7 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<Navigate to="/inbox" replace />} />
         <Route path="inbox" element={<InboxView />} />
+        <Route path="action" element={<ActionCenter />} />
         <Route path="today" element={<TodayView />} />
         <Route path="next" element={<NextView />} />
         <Route path="projects" element={<ProjectsView />} />
