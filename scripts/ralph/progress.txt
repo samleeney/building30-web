@@ -15,6 +15,11 @@ Branch: ralph/building30-frontend
 - **Query keys**: `["cards", params]` for lists, `["card", id]` for detail, `["views", name]` for view endpoints, `["tags"]` for tags
 - **Mutations**: All card mutations invalidate `["cards"]` and `["views"]`; detail mutations also invalidate `["card", id]`
 - **SSE**: `useEventStream()` connects when authenticated, invalidates queries on card_upsert/card_delete events
+- **Routing**: `react-router-dom` with `BrowserRouter` in main.tsx, `Routes`/`Route` in App.tsx, `NavLink` for sidebar active state
+- **Layout**: Three-panel layout in `App.tsx` via `Layout` component with `<Outlet />` — sidebar (w-48) + main content + optional detail panel
+- **C3 Design**: Geist Sans/Mono via CDN `@font-face`, oklch monochrome tokens in `@theme` block, `* { border-radius: 0 !important }`, `.grid-bg` class for grid lines
+- **Page pattern**: Each page in `src/pages/{Name}View.tsx`, exported as named export `{Name}View`
+- **Sidebar nav**: `src/components/layout/Sidebar.tsx` with `NavLink` array — active state uses `bg-accent text-white`
 ---
 
 ## 2026-03-13 - US-001
@@ -55,4 +60,18 @@ Branch: ralph/building30-frontend
   - View endpoints live at `/api/views/{name}`, not `/api/{name}`
   - `useAreas()` returns `Record<string, Card[]>` (grouped by area tag), not a paginated response
   - SSE `fetchEventSource` retries automatically on error — no custom retry logic needed
+---
+
+## 2026-03-13 - US-004
+- Installed react-router-dom, set up BrowserRouter in main.tsx
+- Created C3 design system in src/index.css: Geist Sans/Mono via CDN @font-face, oklch monochrome @theme tokens, zero border-radius, grid background, custom scrollbar
+- Created src/components/layout/Sidebar.tsx with NavLink navigation for all 8 GTD views, lucide-react icons, active route highlighting
+- Rewrote src/App.tsx with three-panel Layout (sidebar + main + optional detail), Routes for all views + callback + catch-all
+- Created placeholder page components in src/pages/ for all 8 views: InboxView, TodayView, NextView, ProjectsView, AreasView, WaitingView, SomedayView, ReferenceView
+- Files changed: package.json, package-lock.json, src/index.css, src/main.tsx, src/App.tsx, src/components/layout/Sidebar.tsx, src/pages/*.tsx
+- **Learnings for future iterations:**
+  - Geist fonts available via CDN at cdn.jsdelivr.net/npm/geist — use woff2 variable fonts for optimal loading
+  - Tailwind v4 `@theme` block replaces the old `theme.extend` in config — define CSS custom properties there
+  - NavLink `className` prop accepts a function `({isActive}) => string` for conditional styling
+  - Keep `BrowserRouter` outside `Auth0Provider` so Auth0 redirect callbacks work correctly with React Router
 ---

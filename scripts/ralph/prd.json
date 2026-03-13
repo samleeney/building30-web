@@ -71,7 +71,7 @@
         "npm run build succeeds"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Use oklch(0.98 0 0) for bg, oklch(0.13 0 0) for text, oklch(0.85 0 0) for borders"
     },
     {
@@ -107,7 +107,7 @@
     },
     {
       "id": "US-007",
-      "title": "Core views — Inbox, Today, Next",
+      "title": "Core views \u2014 Inbox, Today, Next",
       "description": "As a user, I need the main GTD views populated with real data.",
       "acceptanceCriteria": [
         "Create src/pages/InboxView.tsx using useCards({type: 'inbox'})",
@@ -124,7 +124,7 @@
     },
     {
       "id": "US-008",
-      "title": "Action Center — triage and draft review",
+      "title": "Action Center \u2014 triage and draft review",
       "description": "As a user, I need the triage workflow to process inbox items.",
       "acceptanceCriteria": [
         "Create src/pages/ActionCenter.tsx fetching GET /api/action-queue",
