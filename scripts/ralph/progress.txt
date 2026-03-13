@@ -24,6 +24,8 @@ Branch: ralph/building30-frontend
 - **CardList/CardItem**: `src/components/cards/` — `CardList` takes `cards`, `selectedId`, `onSelect`, `emptyMessage` props; `CardItem` shows type badge, title, tags, due date. Selection managed via `onSelect` callback (pages use `useSearchParams` for `?card=id`)
 - **Type badges**: `typeColors` map in `CardItem.tsx` — oklch monochrome badges per card_type
 - **View page pattern**: Each view page follows: `useSearchParams` for card selection, data hook for cards, two-panel layout (list + optional CardDetail sidebar at w-80), loading/error states, `useEventStream()` for SSE
+- **Action Center hooks**: `src/lib/hooks/use-action-center.ts` — `useActionQueue` (GET /api/action-queue), `useTriage` (POST /api/triage), `useArchiveCard` (POST /api/archive), `useDrafts` (GET /api/cards?assigned=llm&llm_status=draft_ready), `useApproveDraft`, `useRejectDraft`, `useReviseDraft`
+- **Wizard pattern**: For step-through flows, use index-based navigation with clamping + `key={item.id}` on inner component to auto-reset form state on card change
 ---
 
 ## 2026-03-13 - US-001
@@ -120,4 +122,20 @@ Branch: ralph/building30-frontend
   - All three views follow identical pattern — extracted as "View page pattern" in Codebase Patterns
   - `useEventStream()` is idempotent (multiple calls in different views are safe — the hook internally guards on `isAuthenticated`)
   - Side panel width of w-80 (320px) fits CardDetail well within the three-panel layout
+---
+
+## 2026-03-13 - US-008
+- Created `src/lib/hooks/use-action-center.ts` with hooks: `useActionQueue`, `useTriage`, `useArchiveCard`, `useDrafts`, `useApproveDraft`, `useRejectDraft`, `useReviseDraft`
+- Created `src/pages/ActionCenter.tsx` with two-tab layout (Triage + Drafts)
+- Triage tab: wizard-like flow showing one card at a time from `GET /api/action-queue`, with prev/next navigation, card counter, and triage form (assign human/llm, add tags, set project). Submit calls `POST /api/triage`, Archive calls `POST /api/archive`
+- Draft Review tab: lists cards with `assigned=llm, llm_status=draft_ready`, each with Approve/Reject/Revise buttons
+- `TriageWizard` inner component fetches full `CardDetail` via `useCard(id)` to display body and metadata
+- Uses `key={card.id}` on TriageWizard to auto-reset form state when navigating between cards
+- Added `/action` route in App.tsx, Zap icon sidebar link in Sidebar.tsx (positioned after Inbox)
+- Files changed: src/lib/hooks/use-action-center.ts, src/pages/ActionCenter.tsx, src/App.tsx, src/components/layout/Sidebar.tsx
+- **Learnings for future iterations:**
+  - `key={id}` on a form component is the cleanest way to reset all local state when the data source changes — no manual `useEffect` cleanup needed
+  - Tab UI pattern: simple button group with `bg-accent text-white` for active, `bg-bg-panel text-text-muted` for inactive — consistent with C3 aesthetic
+  - For wizard flows on mutable data (action queue shrinks as items are triaged), clamp the index to valid range to avoid out-of-bounds: `Math.min(currentIndex, cards.length - 1)`
+  - `submitted` boolean state prevents double-submit: set true in `onSuccess`, component unmounts via key change when queue re-fetches
 ---
