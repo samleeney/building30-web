@@ -18,6 +18,8 @@ createRoot(document.getElementById('root')!).render(
           redirect_uri: window.location.origin + '/callback',
           audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         }}
+        useRefreshTokens={true}
+        cacheLocation="localstorage"
       >
         <QueryClientProvider client={queryClient}>
           <App />
