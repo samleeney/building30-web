@@ -28,6 +28,8 @@ Branch: ralph/building30-frontend
 - **Wizard pattern**: For step-through flows, use index-based navigation with clamping + `key={item.id}` on inner component to auto-reset form state on card change
 - **Project context hook**: `useProjectContext(id)` in `src/lib/hooks/use-project-context.ts` — fetches `GET /api/projects/:id/context`, returns `ProjectContext` with grouped tasks
 - **Area grouping**: `useAreas()` returns `Record<string, Card[]>` — render collapsible groups with `AreaGroup` component using `useState(true)` for expand/collapse
+- **NewCardDialog**: Modal in `src/components/NewCardDialog.tsx` — triggered from Sidebar's "New Card" button, creates cards via `useCreateCard`. Type selector + title + tags + body fields. Resets state on open via `useEffect`
+- **Auth0 sidebar**: Login/logout button at bottom of `Sidebar.tsx` using `useAuth0()` — shows user name when authenticated, login button when not. "New Card" button only shown when authenticated
 ---
 
 ## 2026-03-13 - US-001
@@ -154,4 +156,19 @@ Branch: ralph/building30-frontend
   - `ProjectContext` response comes unwrapped (no `{data: ...}` envelope) — just the object directly
   - Collapsible area groups use simple `useState(true)` — no need for a controlled accordion when groups are independent
   - `useSearchParams` param name differs per view: `?project=id` for ProjectsView vs `?card=id` for AreasView — keeps URLs meaningful
+---
+
+## 2026-03-13 - US-010
+- Implemented `src/pages/WaitingView.tsx` — fetches cards with type=waiting, full view page pattern (list + detail sidebar + loading/error states + SSE)
+- Implemented `src/pages/SomedayView.tsx` — fetches cards with type=someday, same pattern
+- Implemented `src/pages/ReferenceView.tsx` — fetches cards with type=reference, same pattern
+- Created `src/components/NewCardDialog.tsx` — modal form for creating cards from any view. Type selector, title, tags (comma-separated), optional body. Accessible via "New Card" button in sidebar (shown when authenticated)
+- Updated `src/components/layout/Sidebar.tsx` — added Auth0 login/logout button at bottom, user name display when authenticated, "New Card" button at top
+- All views include loading states (font-mono "Loading...") and error states ("Failed to load cards")
+- Files changed: src/pages/WaitingView.tsx, src/pages/SomedayView.tsx, src/pages/ReferenceView.tsx, src/components/NewCardDialog.tsx, src/components/layout/Sidebar.tsx
+- **Learnings for future iterations:**
+  - NewCardDialog uses `key`-less approach with manual `useEffect` reset on `open` change — simpler than remounting since the dialog is always in the DOM via Sidebar
+  - Auth0's `useAuth0()` provides `isAuthenticated`, `isLoading`, `user`, `loginWithRedirect`, `logout` — all needed for the sidebar auth section
+  - Modal overlay uses `onClick` on backdrop + `e.stopPropagation()` on dialog content to handle dismiss
+  - Escape key handling via `window.addEventListener("keydown")` in a `useEffect` that cleans up on close
 ---
