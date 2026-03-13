@@ -20,6 +20,8 @@ Branch: ralph/building30-frontend
 - **C3 Design**: Geist Sans/Mono via CDN `@font-face`, oklch monochrome tokens in `@theme` block, `* { border-radius: 0 !important }`, `.grid-bg` class for grid lines
 - **Page pattern**: Each page in `src/pages/{Name}View.tsx`, exported as named export `{Name}View`
 - **Sidebar nav**: `src/components/layout/Sidebar.tsx` with `NavLink` array — active state uses `bg-accent text-white`
+- **CardList/CardItem**: `src/components/cards/` — `CardList` takes `cards`, `selectedId`, `onSelect`, `emptyMessage` props; `CardItem` shows type badge, title, tags, due date. Selection managed via `onSelect` callback (pages use `useSearchParams` for `?card=id`)
+- **Type badges**: `typeColors` map in `CardItem.tsx` — oklch monochrome badges per card_type
 ---
 
 ## 2026-03-13 - US-001
@@ -74,4 +76,16 @@ Branch: ralph/building30-frontend
   - Tailwind v4 `@theme` block replaces the old `theme.extend` in config — define CSS custom properties there
   - NavLink `className` prop accepts a function `({isActive}) => string` for conditional styling
   - Keep `BrowserRouter` outside `Auth0Provider` so Auth0 redirect callbacks work correctly with React Router
+---
+
+## 2026-03-13 - US-005
+- Created `src/components/cards/CardItem.tsx` — displays type badge (monochrome per card_type), title, tags as `#tag` labels, due date with calendar icon
+- Created `src/components/cards/CardList.tsx` — scrollable list of CardItems with empty state (Inbox icon + configurable message)
+- CardItem uses `button` element for accessibility, `onSelect` callback for click handling
+- CardList accepts `selectedId` for highlighting, `onSelect` for card selection, `emptyMessage` for empty state
+- Files changed: src/components/cards/CardItem.tsx, src/components/cards/CardList.tsx
+- **Learnings for future iterations:**
+  - Keep card selection state management in the page (via `useSearchParams` or local state), not in the list component — CardList stays a pure presentational component
+  - Type badge uses `typeColors` record mapping CardType to Tailwind classes — easy to extend
+  - Using `button` with `type="button"` instead of `div` with `onClick` for proper keyboard nav and accessibility
 ---
