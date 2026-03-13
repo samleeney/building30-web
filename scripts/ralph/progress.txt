@@ -5,6 +5,7 @@ Branch: ralph/building30-frontend
 
 ## Codebase Patterns
 - **Tailwind v4**: Use `@import "tailwindcss"` in CSS, `@tailwindcss/vite` plugin in vite.config.ts (not PostCSS)
+- **CardDetail pattern**: `CardDetail` takes `cardId` + optional `onClose`, fetches via `useCard(id)`, inner component handles editing state. Use `useUpdateCard` with mods for tag add/remove (`+tag:name`, `-tag:name`) and type changes (`type:inbox`)
 - **Vite v7**: Downgraded from v8 scaffold due to `@tailwindcss/vite` peer dep requiring `vite@^5 || ^6 || ^7`
 - **Auth0**: Configured in main.tsx via `Auth0Provider` wrapping entire app, uses `VITE_` env vars
 - **TanStack Query**: `QueryClientProvider` wrapping app in main.tsx
@@ -88,4 +89,21 @@ Branch: ralph/building30-frontend
   - Keep card selection state management in the page (via `useSearchParams` or local state), not in the list component — CardList stays a pure presentational component
   - Type badge uses `typeColors` record mapping CardType to Tailwind classes — easy to extend
   - Using `button` with `type="button"` instead of `div` with `onClick` for proper keyboard nav and accessibility
+---
+
+## 2026-03-13 - US-006
+- Created `src/components/cards/CardDetail.tsx` — full card detail view with inline editing
+- Title: click-to-edit with input field, saves via `useUpdateField` (PUT /api/cards/:id/field)
+- Body: click-to-edit with textarea, saves via `useUpdateBody` (PUT /api/cards/:id/body)
+- Tags: removable badges with X button, add-tag input — uses `useUpdateCard` with `+tag:` / `-tag:` mods
+- Actions: Mark Done (useMarkDone), Move dropdown (type change via mods), Delete with confirmation
+- Metadata section: due, start, project, time estimate, energy, links
+- Split into outer `CardDetail` (fetching) and inner `CardDetailInner` (editing state) to keep hooks clean
+- Files changed: src/components/cards/CardDetail.tsx
+- **Learnings for future iterations:**
+  - Split fetch/loading shell from stateful inner component — avoids hook ordering issues with conditional rendering
+  - Tag mutations use `useUpdateCard` with mods array (`+tag:name`, `-tag:name`), not a dedicated tag endpoint
+  - Move/type changes also via mods: `type:inbox`, `type:task`, etc.
+  - Body has no markdown rendering library — rendered as preformatted mono text for now; can add later
+  - Confirm-delete pattern: first click sets `confirmDelete=true` changing button style, second click executes
 ---
