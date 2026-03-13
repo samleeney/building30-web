@@ -1,0 +1,4 @@
+# Ralph Progress Log
+Started: Server phase complete and tested. Building frontend.
+Branch: ralph/building30-frontend
+---

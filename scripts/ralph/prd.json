@@ -1,0 +1,176 @@
+{
+  "project": "Building30 Frontend",
+  "branchName": "ralph/building30-frontend",
+  "description": "React SPA frontend for Building30 GTD system with Auth0, TanStack Query, SSE, and C3 design system",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Scaffold Vite + React + Auth0 + TanStack Query + Tailwind",
+      "description": "As a developer, I need the frontend project scaffolded with auth and data fetching.",
+      "acceptanceCriteria": [
+        "Initialize Vite project with React 19 + TypeScript template in the repo root (not in a subdirectory)",
+        "Install dependencies: @auth0/auth0-react, @tanstack/react-query, @microsoft/fetch-event-source, lucide-react",
+        "Install Tailwind CSS v4 and configure it",
+        "Configure Auth0Provider in main.tsx wrapping the app, reading from VITE_ env vars",
+        "Configure QueryClientProvider in main.tsx",
+        "Create .env.example with VITE_API_URL=http://localhost:8080, VITE_AUTH0_DOMAIN, VITE_AUTH0_CLIENT_ID, VITE_AUTH0_AUDIENCE",
+        "Create .env.local with VITE_API_URL=http://localhost:8080, VITE_AUTH0_DOMAIN=dev-gwbgo2ww358tjjby.eu.auth0.com, VITE_AUTH0_CLIENT_ID=RjNnnoVDET5U1IIUUnVbi5i9A4xK1Man, VITE_AUTH0_AUDIENCE=https://api.building30.io",
+        "Add .env.local to .gitignore",
+        "npm run dev starts without errors",
+        "npm run build succeeds"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "This is a fresh repo. Run npm create vite@latest . -- --template react-ts to scaffold in place."
+    },
+    {
+      "id": "US-002",
+      "title": "API client and shared types",
+      "description": "As a frontend developer, I need a typed API client that injects Auth0 JWTs.",
+      "acceptanceCriteria": [
+        "Create src/lib/api-client.ts with fetch wrapper that calls getAccessTokenSilently() for every request",
+        "Handles GET, POST, PUT, DELETE with proper content-type headers",
+        "Parses error envelope {error: {code, message, status}} and throws typed errors",
+        "Create src/lib/types.ts with Card, CardDetail, ProjectContext, ServerEvent, TagStat, ApiError, PaginatedResponse types",
+        "API client reads base URL from VITE_API_URL env var",
+        "npm run build succeeds"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Card type should match the server response shape from GET /api/cards"
+    },
+    {
+      "id": "US-003",
+      "title": "React Query hooks and SSE event stream",
+      "description": "As a frontend developer, I need data fetching hooks for card operations.",
+      "acceptanceCriteria": [
+        "Create src/lib/hooks/use-cards.ts with useCards(params?) and useCard(id) query hooks",
+        "Create src/lib/hooks/use-mutations.ts with useCreateCard, useUpdateCard, useDeleteCard, useMarkDone, useUpdateBody, useUpdateField mutations",
+        "All mutations invalidate relevant queries on success",
+        "Create src/lib/hooks/use-event-stream.ts using @microsoft/fetch-event-source with Authorization header from Auth0",
+        "SSE hook invalidates card queries on card_upsert/card_delete events",
+        "Create src/lib/hooks/use-views.ts with useToday, useNext, useAreas, useTags hooks",
+        "npm run build succeeds"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Layout shell with C3 design system",
+      "description": "As a user, I need the app layout with navigation so I can switch between views.",
+      "acceptanceCriteria": [
+        "Create src/App.tsx with three-panel layout: sidebar + main content + optional detail panel",
+        "Create src/components/layout/Sidebar.tsx with nav links: Inbox, Today, Next, Projects, Areas, Waiting, Someday, Reference",
+        "Use lucide-react icons for nav items",
+        "Active route highlighted in sidebar",
+        "Install react-router-dom and set up routes for each view",
+        "Apply C3 design: Geist fonts (from Google Fonts or npm), zero border radius globally, oklch monochrome palette, minimal high-density layout",
+        "Create src/styles/globals.css with Tailwind + design tokens",
+        "npm run build succeeds"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Use oklch(0.98 0 0) for bg, oklch(0.13 0 0) for text, oklch(0.85 0 0) for borders"
+    },
+    {
+      "id": "US-005",
+      "title": "Card list and card item components",
+      "description": "As a user, I need to see a list of cards with key info displayed.",
+      "acceptanceCriteria": [
+        "Create src/components/cards/CardList.tsx rendering a scrollable list of CardItems",
+        "Create src/components/cards/CardItem.tsx showing title, type badge, tags (as small labels), due date if set",
+        "Clicking a card navigates to or selects it (updates URL or state)",
+        "Empty state shown when no cards match",
+        "npm run build succeeds"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Card detail view with inline editing",
+      "description": "As a user, I need to view and edit card details.",
+      "acceptanceCriteria": [
+        "Create src/components/cards/CardDetail.tsx showing full card: title, type, tags, body (rendered markdown), metadata",
+        "Title is click-to-edit (calls PUT /api/cards/:id/field)",
+        "Body is click-to-edit with a textarea (calls PUT /api/cards/:id/body)",
+        "Tags shown as removable badges, with an add-tag input",
+        "Action buttons: Mark Done, Move, Delete with confirmation",
+        "npm run build succeeds"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Core views — Inbox, Today, Next",
+      "description": "As a user, I need the main GTD views populated with real data.",
+      "acceptanceCriteria": [
+        "Create src/pages/InboxView.tsx using useCards({type: 'inbox'})",
+        "Create src/pages/TodayView.tsx using useToday() hook",
+        "Create src/pages/NextView.tsx using useNext() hook",
+        "Each view renders CardList with appropriate data",
+        "Clicking a card shows CardDetail in a side panel or expanded view",
+        "SSE events cause lists to update in real-time (via query invalidation)",
+        "npm run build succeeds"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Action Center — triage and draft review",
+      "description": "As a user, I need the triage workflow to process inbox items.",
+      "acceptanceCriteria": [
+        "Create src/pages/ActionCenter.tsx fetching GET /api/action-queue",
+        "Shows cards one at a time in a wizard-like flow",
+        "For each card: display title, body, allow assigning to human/llm, adding tags, setting project",
+        "Submit calls POST /api/triage",
+        "Archive button calls POST /api/archive",
+        "Section for reviewing LLM drafts (cards with assigned=llm, llm_status=draft_ready) with approve/reject/revise buttons",
+        "npm run build succeeds"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Projects and Areas views",
+      "description": "As a user, I need project detail and area grouping views.",
+      "acceptanceCriteria": [
+        "Create src/pages/ProjectsView.tsx listing all project cards",
+        "Clicking a project shows ProjectDetail with tasks grouped by status (kanban-style columns or list sections)",
+        "Project detail fetches GET /api/projects/:id/context",
+        "Create src/pages/AreasView.tsx using useAreas() hook, grouped by area tag",
+        "npm run build succeeds"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Remaining views and polish",
+      "description": "As a user, I need the secondary GTD views and overall polish.",
+      "acceptanceCriteria": [
+        "Create src/pages/WaitingView.tsx fetching cards with type=waiting",
+        "Create src/pages/SomedayView.tsx fetching cards with type=someday",
+        "Create src/pages/ReferenceView.tsx fetching cards with type=reference",
+        "Create new card button/form accessible from any view",
+        "Loading states shown while data is fetching",
+        "Error states shown when API calls fail",
+        "Auth0 login/logout button in sidebar or header",
+        "npm run build succeeds"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
