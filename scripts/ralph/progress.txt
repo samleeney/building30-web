@@ -23,6 +23,7 @@ Branch: ralph/building30-frontend
 - **Sidebar nav**: `src/components/layout/Sidebar.tsx` with `NavLink` array — active state uses `bg-accent text-white`
 - **CardList/CardItem**: `src/components/cards/` — `CardList` takes `cards`, `selectedId`, `onSelect`, `emptyMessage` props; `CardItem` shows type badge, title, tags, due date. Selection managed via `onSelect` callback (pages use `useSearchParams` for `?card=id`)
 - **Type badges**: `typeColors` map in `CardItem.tsx` — oklch monochrome badges per card_type
+- **View page pattern**: Each view page follows: `useSearchParams` for card selection, data hook for cards, two-panel layout (list + optional CardDetail sidebar at w-80), loading/error states, `useEventStream()` for SSE
 ---
 
 ## 2026-03-13 - US-001
@@ -106,4 +107,17 @@ Branch: ralph/building30-frontend
   - Move/type changes also via mods: `type:inbox`, `type:task`, etc.
   - Body has no markdown rendering library — rendered as preformatted mono text for now; can add later
   - Confirm-delete pattern: first click sets `confirmDelete=true` changing button style, second click executes
+---
+
+## 2026-03-13 - US-007
+- Implemented InboxView using `useCards({type: 'inbox'})`, TodayView using `useToday()`, NextView using `useNext()`
+- Each view: header + CardList + optional CardDetail side panel (w-80, border-left)
+- Card selection via `useSearchParams` — clicking toggles `?card=id`, CardDetail appears in side panel
+- Loading and error states for each view
+- Connected `useEventStream()` in each view for real-time SSE updates
+- Files changed: src/pages/InboxView.tsx, src/pages/TodayView.tsx, src/pages/NextView.tsx
+- **Learnings for future iterations:**
+  - All three views follow identical pattern — extracted as "View page pattern" in Codebase Patterns
+  - `useEventStream()` is idempotent (multiple calls in different views are safe — the hook internally guards on `isAuthenticated`)
+  - Side panel width of w-80 (320px) fits CardDetail well within the three-panel layout
 ---
