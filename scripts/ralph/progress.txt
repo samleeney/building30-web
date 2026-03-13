@@ -26,6 +26,8 @@ Branch: ralph/building30-frontend
 - **View page pattern**: Each view page follows: `useSearchParams` for card selection, data hook for cards, two-panel layout (list + optional CardDetail sidebar at w-80), loading/error states, `useEventStream()` for SSE
 - **Action Center hooks**: `src/lib/hooks/use-action-center.ts` — `useActionQueue` (GET /api/action-queue), `useTriage` (POST /api/triage), `useArchiveCard` (POST /api/archive), `useDrafts` (GET /api/cards?assigned=llm&llm_status=draft_ready), `useApproveDraft`, `useRejectDraft`, `useReviseDraft`
 - **Wizard pattern**: For step-through flows, use index-based navigation with clamping + `key={item.id}` on inner component to auto-reset form state on card change
+- **Project context hook**: `useProjectContext(id)` in `src/lib/hooks/use-project-context.ts` — fetches `GET /api/projects/:id/context`, returns `ProjectContext` with grouped tasks
+- **Area grouping**: `useAreas()` returns `Record<string, Card[]>` — render collapsible groups with `AreaGroup` component using `useState(true)` for expand/collapse
 ---
 
 ## 2026-03-13 - US-001
@@ -138,4 +140,18 @@ Branch: ralph/building30-frontend
   - Tab UI pattern: simple button group with `bg-accent text-white` for active, `bg-bg-panel text-text-muted` for inactive — consistent with C3 aesthetic
   - For wizard flows on mutable data (action queue shrinks as items are triaged), clamp the index to valid range to avoid out-of-bounds: `Math.min(currentIndex, cards.length - 1)`
   - `submitted` boolean state prevents double-submit: set true in `onSuccess`, component unmounts via key change when queue re-fetches
+---
+
+## 2026-03-13 - US-009
+- Created `src/lib/hooks/use-project-context.ts` — `useProjectContext(id)` fetches `GET /api/projects/:id/context`
+- Implemented `src/pages/ProjectsView.tsx` — lists project cards with status/due, clicking shows `ProjectDetail` sidebar (w-96)
+- ProjectDetail shows: goal, metadata, effective next task highlight, task sections (Next Actions, Waiting For, Other Tasks, References), linked materials, recent completions
+- Implemented `src/pages/AreasView.tsx` — collapsible groups via `useAreas()` (`Record<string, Card[]>`), each group shows `CardList` with expand/collapse toggle
+- AreasView includes card detail sidebar (w-80) following existing view page pattern
+- Files changed: src/lib/hooks/use-project-context.ts, src/pages/ProjectsView.tsx, src/pages/AreasView.tsx
+- **Learnings for future iterations:**
+  - ProjectDetail panel is wider (w-96 vs w-80) since it shows grouped task lists — more content than a single CardDetail
+  - `ProjectContext` response comes unwrapped (no `{data: ...}` envelope) — just the object directly
+  - Collapsible area groups use simple `useState(true)` — no need for a controlled accordion when groups are independent
+  - `useSearchParams` param name differs per view: `?project=id` for ProjectsView vs `?card=id` for AreasView — keeps URLs meaningful
 ---
