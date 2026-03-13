@@ -1,9 +1,45 @@
-function App() {
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { Sidebar } from "./components/layout/Sidebar";
+import { InboxView } from "./pages/InboxView";
+import { TodayView } from "./pages/TodayView";
+import { NextView } from "./pages/NextView";
+import { ProjectsView } from "./pages/ProjectsView";
+import { AreasView } from "./pages/AreasView";
+import { WaitingView } from "./pages/WaitingView";
+import { SomedayView } from "./pages/SomedayView";
+import { ReferenceView } from "./pages/ReferenceView";
+
+function Layout() {
   return (
-    <div className="min-h-screen bg-white text-black">
-      <h1 className="p-4 text-xl font-bold">Building30</h1>
+    <div className="grid-bg flex h-screen overflow-hidden">
+      <Sidebar />
+      <main className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
+      </main>
     </div>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<Navigate to="/inbox" replace />} />
+        <Route path="inbox" element={<InboxView />} />
+        <Route path="today" element={<TodayView />} />
+        <Route path="next" element={<NextView />} />
+        <Route path="projects" element={<ProjectsView />} />
+        <Route path="areas" element={<AreasView />} />
+        <Route path="waiting" element={<WaitingView />} />
+        <Route path="someday" element={<SomedayView />} />
+        <Route path="reference" element={<ReferenceView />} />
+        <Route path="callback" element={<Navigate to="/inbox" replace />} />
+        <Route path="*" element={<Navigate to="/inbox" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
+export default App;
