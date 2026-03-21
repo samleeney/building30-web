@@ -37,7 +37,7 @@ function App() {
         <Route path="waiting" element={<WaitingView />} />
         <Route path="someday" element={<SomedayView />} />
         <Route path="reference" element={<ReferenceView />} />
-        <Route path="callback" element={<Navigate to="/inbox" replace />} />
+        <Route path="callback" element={<div className="flex items-center justify-center h-full"><span className="font-mono text-xs text-text-muted">Authenticating...</span></div>} />
         <Route path="*" element={<Navigate to="/inbox" replace />} />
       </Route>
     </Routes>
