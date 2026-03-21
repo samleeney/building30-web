@@ -200,7 +200,7 @@ function TriageWizard({ card }: { card: Card }) {
   function handleSubmit() {
     triage.mutate(
       {
-        card_id: card.id,
+        id: card.id,
         assigned,
         tags: tags.length > 0 ? tags : undefined,
         project_id: project || undefined,

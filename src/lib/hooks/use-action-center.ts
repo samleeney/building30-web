@@ -3,8 +3,9 @@ import { useApiClient } from "./use-api-client";
 import type { Card, PaginatedResponse, DataResponse, MessageResponse } from "../types";
 
 export interface TriageRequest {
-  card_id: string;
-  assigned?: "human" | "llm";
+  id: string;
+  assigned: "human" | "llm";
+  instruction?: string;
   tags?: string[];
   project_id?: string;
 }
@@ -39,7 +40,7 @@ export function useArchiveCard() {
 
   return useMutation({
     mutationFn: (cardId: string) =>
-      api.post<MessageResponse>("/api/archive", { card_id: cardId }),
+      api.post<MessageResponse>("/api/archive", { id: cardId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["action-queue"] });
       qc.invalidateQueries({ queryKey: ["cards"] });
