@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { InboxView } from "./pages/InboxView";
 import { TodayView } from "./pages/TodayView";
@@ -23,21 +24,55 @@ function Layout() {
   );
 }
 
+function AuthGate() {
+  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <span className="font-mono text-xs text-text-muted">Loading...</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <span className="font-mono text-xs text-text-muted">Please log in to continue</span>
+        <button
+          onClick={() => loginWithRedirect()}
+          className="bg-accent text-white px-4 py-2 font-mono text-xs hover:opacity-90"
+        >
+          Log in
+        </button>
+      </div>
+    );
+  }
+
+  return <Outlet />;
+}
+
 function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Navigate to="/inbox" replace />} />
-        <Route path="inbox" element={<InboxView />} />
-        <Route path="action" element={<ActionCenter />} />
-        <Route path="today" element={<TodayView />} />
-        <Route path="next" element={<NextView />} />
-        <Route path="projects" element={<ProjectsView />} />
-        <Route path="areas" element={<AreasView />} />
-        <Route path="waiting" element={<WaitingView />} />
-        <Route path="someday" element={<SomedayView />} />
-        <Route path="reference" element={<ReferenceView />} />
-        <Route path="callback" element={<div className="flex items-center justify-center h-full"><span className="font-mono text-xs text-text-muted">Authenticating...</span></div>} />
+        <Route path="callback" element={
+          <div className="flex items-center justify-center h-full">
+            <span className="font-mono text-xs text-text-muted">Authenticating...</span>
+          </div>
+        } />
+        <Route element={<AuthGate />}>
+          <Route index element={<Navigate to="/inbox" replace />} />
+          <Route path="inbox" element={<InboxView />} />
+          <Route path="action" element={<ActionCenter />} />
+          <Route path="today" element={<TodayView />} />
+          <Route path="next" element={<NextView />} />
+          <Route path="projects" element={<ProjectsView />} />
+          <Route path="areas" element={<AreasView />} />
+          <Route path="waiting" element={<WaitingView />} />
+          <Route path="someday" element={<SomedayView />} />
+          <Route path="reference" element={<ReferenceView />} />
+        </Route>
         <Route path="*" element={<Navigate to="/inbox" replace />} />
       </Route>
     </Routes>
