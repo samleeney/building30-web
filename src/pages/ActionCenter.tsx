@@ -163,7 +163,7 @@ function TriageWizard({ card }: { card: Card }) {
   const triage = useTriage();
   const archive = useArchiveCard();
 
-  const [assigned, setAssigned] = useState<"human" | "llm" | undefined>();
+  const [assigned, setAssigned] = useState<"human" | "llm">("human");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
