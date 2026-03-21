@@ -34,7 +34,7 @@ export function InboxView() {
           </div>
         ) : error ? (
           <div className="flex items-center justify-center py-16 text-text-muted">
-            <span className="font-mono text-xs">Failed to load cards</span>
+            <span className="font-mono text-xs">Failed to load cards: {(error as Error)?.message}</span>
           </div>
         ) : (
           <CardList

@@ -14,7 +14,8 @@ export class ApiClientError extends Error {
   }
 }
 
-type GetToken = () => Promise<string>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GetToken = (options?: any) => Promise<string>;
 
 async function request<T>(
   getToken: GetToken,
@@ -22,7 +23,17 @@ async function request<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const token = await getToken();
+  let token: string;
+  try {
+    token = await getToken({
+      authorizationParams: {
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+      },
+    });
+  } catch (err) {
+    console.error("[api-client] getAccessTokenSilently failed:", err);
+    throw new ApiClientError("auth_error", `Auth token error: ${(err as Error).message}`, 401);
+  }
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
