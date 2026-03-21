@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "./use-api-client";
-import type { Card, PaginatedResponse, MessageResponse } from "../types";
+import type { Card, PaginatedResponse, DataResponse, MessageResponse } from "../types";
 
 export interface TriageRequest {
   card_id: string;
@@ -14,7 +14,7 @@ export function useActionQueue() {
 
   return useQuery({
     queryKey: ["action-queue"],
-    queryFn: () => api.get<Card[]>("/api/action-queue"),
+    queryFn: () => api.get<DataResponse<Card[]>>("/api/action-queue"),
   });
 }
 

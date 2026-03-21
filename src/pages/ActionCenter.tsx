@@ -91,7 +91,7 @@ function TriageSection() {
   const { data: queue, isLoading, error } = useActionQueue();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const cards = queue ?? [];
+  const cards = queue?.data ?? [];
   const clampedIndex = cards.length > 0
     ? Math.min(currentIndex, cards.length - 1)
     : 0;
@@ -159,8 +159,7 @@ function TriageSection() {
 }
 
 function TriageWizard({ card }: { card: Card }) {
-  const { data: detail } = useCard(card.id);
-  const fullCard = detail?.data;
+  const { data: fullCard } = useCard(card.id);
   const triage = useTriage();
   const archive = useArchiveCard();
 

@@ -1,13 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "./use-api-client";
-import type { Card, TagStat, PaginatedResponse } from "../types";
+import type { Card, TagStat, DataResponse } from "../types";
+
+export interface AreaGroup {
+  area: string;
+  cards: Card[];
+}
 
 export function useToday() {
   const api = useApiClient();
 
   return useQuery({
     queryKey: ["views", "today"],
-    queryFn: () => api.get<PaginatedResponse<Card>>("/api/views/today"),
+    queryFn: () => api.get<DataResponse<Card[]>>("/api/views/today"),
   });
 }
 
@@ -16,7 +21,7 @@ export function useNext() {
 
   return useQuery({
     queryKey: ["views", "next"],
-    queryFn: () => api.get<PaginatedResponse<Card>>("/api/views/next"),
+    queryFn: () => api.get<DataResponse<Card[]>>("/api/views/next"),
   });
 }
 
@@ -25,7 +30,7 @@ export function useAreas() {
 
   return useQuery({
     queryKey: ["views", "areas"],
-    queryFn: () => api.get<Record<string, Card[]>>("/api/views/areas"),
+    queryFn: () => api.get<DataResponse<AreaGroup[]>>("/api/views/areas"),
   });
 }
 
@@ -34,6 +39,6 @@ export function useTags() {
 
   return useQuery({
     queryKey: ["tags"],
-    queryFn: () => api.get<TagStat[]>("/api/tags"),
+    queryFn: () => api.get<DataResponse<TagStat[]>>("/api/tags"),
   });
 }

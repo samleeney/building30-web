@@ -12,8 +12,7 @@ export function AreasView() {
   const selectedId = searchParams.get("card") ?? undefined;
 
   const { data, isLoading, error } = useAreas();
-  const areas = data ?? {};
-  const areaNames = Object.keys(areas).sort();
+  const areaGroups = data?.data ?? [];
 
   function handleSelect(id: string) {
     setSearchParams(id === selectedId ? {} : { card: id });
@@ -39,18 +38,18 @@ export function AreasView() {
           <div className="flex items-center justify-center py-16 text-text-muted">
             <span className="font-mono text-xs">Failed to load areas</span>
           </div>
-        ) : areaNames.length === 0 ? (
+        ) : areaGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-text-muted">
             <Layers size={24} strokeWidth={1} />
             <span className="font-mono text-xs">No areas</span>
           </div>
         ) : (
           <div className="flex flex-col overflow-y-auto">
-            {areaNames.map((area) => (
-              <AreaGroup
-                key={area}
-                name={area}
-                cards={areas[area]}
+            {areaGroups.map((group) => (
+              <AreaSection
+                key={group.area}
+                name={group.area}
+                cards={group.cards}
                 selectedId={selectedId}
                 onSelect={handleSelect}
               />
@@ -67,7 +66,7 @@ export function AreasView() {
   );
 }
 
-function AreaGroup({
+function AreaSection({
   name,
   cards,
   selectedId,

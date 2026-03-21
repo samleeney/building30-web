@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "./use-api-client";
-import type { Card, CardDetail, PaginatedResponse, DataResponse } from "../types";
+import type { Card, CardDetail, PaginatedResponse } from "../types";
 
 export interface UseCardsParams {
   type?: string;
@@ -34,7 +34,7 @@ export function useCard(id: string | undefined) {
 
   return useQuery({
     queryKey: ["card", id],
-    queryFn: () => api.get<DataResponse<CardDetail>>(`/api/cards/${id}`),
+    queryFn: () => api.get<CardDetail>(`/api/cards/${id}`),
     enabled: !!id,
   });
 }

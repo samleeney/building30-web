@@ -43,8 +43,7 @@ interface CardDetailProps {
 }
 
 export function CardDetail({ cardId, onClose }: CardDetailProps) {
-  const { data, isLoading, error } = useCard(cardId);
-  const card = data?.data;
+  const { data: card, isLoading, error } = useCard(cardId);
 
   if (isLoading) {
     return (

@@ -32,15 +32,15 @@ export interface CardDetail extends Card {
   goal: string | null;
   recurrence: string | null;
   data: unknown | null;
-  project: string | null;
-  due_display: string | null;
-  start_display: string | null;
-  time_estimate: string | null;
-  energy: string | null;
-  mime_type: string | null;
-  links: LinkInfo[];
-  depends: string[];
-  blocked: boolean | null;
+  project?: string | null;
+  due_display?: string | null;
+  start_display?: string | null;
+  time_estimate?: string | null;
+  energy?: string | null;
+  mime_type?: string | null;
+  links?: LinkInfo[];
+  depends?: string[];
+  blocked?: boolean | null;
 }
 
 export interface LinkInfo {
@@ -108,14 +108,14 @@ export type ServerEvent =
 export interface TagStat {
   tag: string;
   count: number;
-  rollup_count: number | null;
-  by_type: Record<string, number>;
-  rollup_by_type: Record<string, number> | null;
-  has_definition: boolean;
-  definition_title: string | null;
-  has_children: boolean;
-  deprecated: boolean;
-  deprecated_in_favour_of: string | null;
+  rollup_count?: number | null;
+  by_type?: Record<string, number>;
+  rollup_by_type?: Record<string, number> | null;
+  has_definition?: boolean;
+  definition_title?: string | null;
+  has_children?: boolean;
+  deprecated?: boolean;
+  deprecated_in_favour_of?: string | null;
 }
 
 // ── API response envelopes ──────────────────────────────────
