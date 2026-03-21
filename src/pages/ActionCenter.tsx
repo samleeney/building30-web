@@ -269,7 +269,7 @@ function TriageWizard({ card }: { card: Card }) {
             <button
               type="button"
               onClick={() =>
-                setAssigned(assigned === "human" ? undefined : "human")
+                setAssigned("human")
               }
               disabled={busy}
               className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-[10px] font-medium transition-colors disabled:opacity-50 ${
@@ -284,7 +284,7 @@ function TriageWizard({ card }: { card: Card }) {
             <button
               type="button"
               onClick={() =>
-                setAssigned(assigned === "llm" ? undefined : "llm")
+                setAssigned("llm")
               }
               disabled={busy}
               className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-[10px] font-medium transition-colors disabled:opacity-50 ${
