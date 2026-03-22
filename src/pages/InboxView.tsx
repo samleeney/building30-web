@@ -1,55 +1,5 @@
-import { useSearchParams } from "react-router-dom";
-import { useCards } from "../lib/hooks/use-cards";
-import { useEventStream } from "../lib/hooks/use-event-stream";
-import { CardList } from "../components/cards/CardList";
-import { CardDetail } from "../components/cards/CardDetail";
+import { Navigate } from "react-router-dom";
 
 export function InboxView() {
-  useEventStream();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedId = searchParams.get("card") ?? undefined;
-
-  const { data, isLoading, error } = useCards({ type: "inbox" });
-  const cards = data?.data ?? [];
-
-  function handleSelect(id: string) {
-    setSearchParams(id === selectedId ? {} : { card: id });
-  }
-
-  function handleClose() {
-    setSearchParams({});
-  }
-
-  return (
-    <div className="flex h-full">
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="border-b border-border px-4 py-3">
-          <h1 className="font-mono text-sm font-semibold tracking-wider text-text-secondary uppercase">
-            Inbox
-          </h1>
-        </div>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-text-muted">
-            <span className="font-mono text-xs">Loading...</span>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center py-16 text-text-muted">
-            <span className="font-mono text-xs">Failed to load cards: {(error as Error)?.message}</span>
-          </div>
-        ) : (
-          <CardList
-            cards={cards}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-            emptyMessage="Inbox is empty"
-          />
-        )}
-      </div>
-      {selectedId && (
-        <div className="w-80 shrink-0 border-l border-border overflow-y-auto">
-          <CardDetail cardId={selectedId} onClose={handleClose} />
-        </div>
-      )}
-    </div>
-  );
+  return <Navigate to="/action" replace />;
 }

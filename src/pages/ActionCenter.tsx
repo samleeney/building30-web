@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useMemo, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   Zap,
@@ -14,91 +14,81 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { ApiClientError } from "../lib/api-client";
 import { useEventStream } from "../lib/hooks/use-event-stream";
 import { useCard } from "../lib/hooks/use-cards";
 import {
   useActionQueue,
+  useLlmDraftQueue,
+  useLlmInProgress,
   useTriage,
   useArchiveCard,
-  useDrafts,
   useApproveDraft,
   useRejectDraft,
   useReviseDraft,
 } from "../lib/hooks/use-action-center";
 import type { Card, CardDetail as CardDetailType } from "../lib/types";
 
-type Tab = "triage" | "drafts";
+/** A card in the unified queue, tagged with its source */
+interface QueueCard extends Card {
+  _isDraft: boolean;
+}
 
 export function ActionCenter() {
   useEventStream();
-  const [activeTab, setActiveTab] = useState<Tab>("triage");
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h1 className="font-mono text-sm font-semibold tracking-wider text-text-secondary uppercase">
-            Action Center
-          </h1>
-          <div className="flex">
-            <TabButton
-              label="Triage"
-              active={activeTab === "triage"}
-              onClick={() => setActiveTab("triage")}
-            />
-            <TabButton
-              label="Drafts"
-              active={activeTab === "drafts"}
-              onClick={() => setActiveTab("drafts")}
-            />
-          </div>
-        </div>
+        <h1 className="font-mono text-sm font-semibold tracking-wider text-text-secondary uppercase">
+          Action Center
+        </h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {activeTab === "triage" ? <TriageSection /> : <DraftReviewSection />}
+        <TriageSection />
+        <InProgressPanel />
       </div>
     </div>
   );
 }
 
-function TabButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-wider transition-colors ${
-        active
-          ? "bg-accent text-white"
-          : "bg-bg-panel text-text-muted hover:text-text"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-// ── Triage ──────────────────────────────────────────────────
+// ── Triage Queue ────────────────────────────────────────────
 
 function TriageSection() {
-  const { data: queue, isLoading, error } = useActionQueue();
+  const { data: inboxData, isLoading: inboxLoading, error: inboxError } = useActionQueue();
+  const { data: draftData, isLoading: draftLoading, error: draftError } = useLlmDraftQueue();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const cards = queue?.data ?? [];
+  const isLoading = inboxLoading || draftLoading;
+
+  // Merge inbox + draft_ready into a single queue
+  // Drafts come first so they get attention quickly
+  const cards: QueueCard[] = useMemo(() => {
+    const drafts: QueueCard[] = (draftData?.data ?? []).map((c) => ({
+      ...c,
+      _isDraft: true,
+    }));
+    const inbox: QueueCard[] = (inboxData?.data ?? []).map((c) => ({
+      ...c,
+      _isDraft: false,
+    }));
+    return [...drafts, ...inbox];
+  }, [inboxData, draftData]);
+
   const clampedIndex = cards.length > 0
     ? Math.min(currentIndex, cards.length - 1)
     : 0;
-  const currentCard = cards[clampedIndex] as Card | undefined;
+  const currentCard = cards[clampedIndex] as QueueCard | undefined;
+
+  // Reset index when queue changes and current index is out of bounds
+  useEffect(() => {
+    if (currentIndex >= cards.length && cards.length > 0) {
+      setCurrentIndex(Math.max(0, cards.length - 1));
+    }
+  }, [cards.length, currentIndex]);
 
   if (isLoading) {
     return (
@@ -108,10 +98,20 @@ function TriageSection() {
     );
   }
 
+  // Show error only if both fail; if just drafts fail, still show inbox cards
+  const error = inboxError && draftError ? inboxError : null;
   if (error) {
+    const errMsg = error instanceof ApiClientError ? error.message : "Failed to load action queue";
+    const needsSetup = error instanceof ApiClientError && error.code === "llm_not_configured";
     return (
-      <div className="flex items-center justify-center py-16 text-text-muted">
-        <span className="font-mono text-xs">Failed to load action queue</span>
+      <div className="flex flex-col items-center justify-center gap-3 py-16">
+        <AlertTriangle size={24} strokeWidth={1} className="text-text-muted" />
+        <span className="font-mono text-xs text-text-muted">{errMsg}</span>
+        {needsSetup && (
+          <Link to="/settings" className="font-mono text-[10px] text-accent underline hover:opacity-80">
+            Go to Settings
+          </Link>
+        )}
       </div>
     );
   }
@@ -131,9 +131,17 @@ function TriageSection() {
     <div className="mx-auto max-w-2xl p-6">
       {/* Counter + navigation */}
       <div className="mb-4 flex items-center justify-between">
-        <span className="font-mono text-[10px] text-text-muted">
-          Card {clampedIndex + 1} of {cards.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] text-text-muted">
+            Card {clampedIndex + 1} of {cards.length}
+          </span>
+          {currentCard._isDraft && (
+            <span className="inline-flex items-center gap-1 rounded-sm bg-teal-500/15 px-1.5 py-0.5 font-mono text-[10px] font-medium text-teal-400">
+              <Bot size={10} strokeWidth={1.5} />
+              LLM Draft
+            </span>
+          )}
+        </div>
         <div className="flex gap-1">
           <button
             type="button"
@@ -156,10 +164,16 @@ function TriageSection() {
         </div>
       </div>
 
-      <TriageWizard key={currentCard.id} card={currentCard} />
+      {currentCard._isDraft ? (
+        <DraftWizard key={currentCard.id} card={currentCard} />
+      ) : (
+        <TriageWizard key={currentCard.id} card={currentCard} />
+      )}
     </div>
   );
 }
+
+// ── Triage Wizard (regular unassigned cards) ────────────────
 
 function TriageWizard({ card }: { card: Card }) {
   const { data: fullCard } = useCard(card.id);
@@ -240,40 +254,7 @@ function TriageWizard({ card }: { card: Card }) {
   return (
     <>
       {/* Card display */}
-      <div className="border border-border bg-bg-panel p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="inline-flex shrink-0 bg-text-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase leading-none text-white">
-            {card.card_type}
-          </span>
-          <h2 className="text-base font-semibold text-text">{card.title}</h2>
-        </div>
-
-        {card.tags.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1">
-            {card.tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 border border-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-text-secondary"
-              >
-                <Tag size={9} strokeWidth={1.5} />
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {bodyText ? (
-          <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-text-secondary">
-            {bodyText}
-          </pre>
-        ) : (
-          <span className="font-mono text-xs text-text-muted italic">
-            No body
-          </span>
-        )}
-
-        {fullCard && <TriageMetadata card={fullCard} />}
-      </div>
+      <CardDisplay card={card} bodyText={bodyText} fullCard={fullCard ?? undefined} />
 
       {/* Triage controls */}
       <div className="mt-4 flex flex-col gap-4 border border-border p-4">
@@ -285,9 +266,7 @@ function TriageWizard({ card }: { card: Card }) {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() =>
-                setAssigned("human")
-              }
+              onClick={() => setAssigned("human")}
               disabled={busy}
               className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-[10px] font-medium transition-colors disabled:opacity-50 ${
                 assigned === "human"
@@ -300,9 +279,7 @@ function TriageWizard({ card }: { card: Card }) {
             </button>
             <button
               type="button"
-              onClick={() =>
-                setAssigned("llm")
-              }
+              onClick={() => setAssigned("llm")}
               disabled={busy}
               className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-[10px] font-medium transition-colors disabled:opacity-50 ${
                 assigned === "llm"
@@ -420,6 +397,177 @@ function TriageWizard({ card }: { card: Card }) {
   );
 }
 
+// ── Draft Wizard (LLM-completed cards) ──────────────────────
+
+function DraftWizard({ card }: { card: Card }) {
+  const { data: fullCard } = useCard(card.id);
+  const approve = useApproveDraft();
+  const reject = useRejectDraft();
+  const revise = useReviseDraft();
+  const [showRevise, setShowRevise] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
+  const isPending = approve.isPending || reject.isPending || revise.isPending;
+
+  function handleError(err: unknown) {
+    if (err instanceof ApiClientError) {
+      setActionError(err.message);
+      setNeedsSetup(err.code === "llm_not_configured");
+    } else {
+      setActionError("An unexpected error occurred");
+    }
+  }
+
+  const bodyText = fullCard?.body ?? card.summary;
+
+  return (
+    <>
+      {/* Card display */}
+      <CardDisplay card={card} bodyText={bodyText} fullCard={fullCard ?? undefined} isDraft />
+
+      {/* Draft controls */}
+      {showRevise ? (
+        <div className="mt-4 border border-border p-4">
+          <span className="mb-2 block font-mono text-[10px] font-medium uppercase tracking-wider text-text-muted">
+            Revision Feedback
+          </span>
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Enter revision feedback..."
+            className="mb-3 w-full border border-border bg-bg p-2 font-mono text-xs text-text placeholder:text-text-muted focus:border-accent focus:outline-none"
+            rows={3}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (!feedback.trim()) return;
+                revise.mutate(
+                  { id: card.id, feedback: feedback.trim() },
+                  { onError: handleError },
+                );
+              }}
+              disabled={isPending || !feedback.trim()}
+              className="inline-flex items-center gap-1.5 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+            >
+              <Send size={12} strokeWidth={1.5} />
+              Send Feedback
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowRevise(false);
+                setFeedback("");
+              }}
+              className="px-2.5 py-1.5 font-mono text-[10px] text-text-muted hover:text-text"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => approve.mutate(card.id, { onError: handleError })}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 font-mono text-[10px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+          >
+            <Check size={12} strokeWidth={2} />
+            Approve
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRevise(true)}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 font-mono text-[10px] font-medium text-text-secondary transition-colors hover:text-text disabled:opacity-50"
+          >
+            <RotateCcw size={12} strokeWidth={1.5} />
+            Revise
+          </button>
+          <button
+            type="button"
+            onClick={() => reject.mutate(card.id, { onError: handleError })}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 font-mono text-[10px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50"
+          >
+            <X size={12} strokeWidth={1.5} />
+            Reject
+          </button>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="mt-3 flex items-start gap-2 border border-red-400/30 bg-red-400/5 p-3">
+          <AlertTriangle size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-red-400" />
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-[10px] text-red-400">{actionError}</span>
+            {needsSetup && (
+              <Link to="/settings" className="font-mono text-[10px] text-accent underline hover:opacity-80">
+                Go to Settings
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Shared Card Display ─────────────────────────────────────
+
+function CardDisplay({
+  card,
+  bodyText,
+  fullCard,
+  isDraft,
+}: {
+  card: Card;
+  bodyText: string | null | undefined;
+  fullCard?: CardDetailType;
+  isDraft?: boolean;
+}) {
+  return (
+    <div className={`border bg-bg-panel p-4 ${isDraft ? "border-teal-500/30" : "border-border"}`}>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="inline-flex shrink-0 bg-text-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase leading-none text-white">
+          {card.card_type}
+        </span>
+        <h2 className="text-base font-semibold text-text">{card.title}</h2>
+      </div>
+
+      {card.tags.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1">
+          {card.tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 border border-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-text-secondary"
+            >
+              <Tag size={9} strokeWidth={1.5} />
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {bodyText ? (
+        <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-text-secondary">
+          {bodyText}
+        </pre>
+      ) : (
+        <span className="font-mono text-xs text-text-muted italic">
+          No body
+        </span>
+      )}
+
+      {fullCard && <TriageMetadata card={fullCard} />}
+    </div>
+  );
+}
+
 function TriageMetadata({ card }: { card: CardDetailType }) {
   const items: { label: string; value: string }[] = [];
 
@@ -455,184 +603,58 @@ function TriageMetadata({ card }: { card: CardDetailType }) {
   );
 }
 
-// ── Draft Review ────────────────────────────────────────────
+// ── In Progress Panel ───────────────────────────────────────
 
-function DraftReviewSection() {
-  const { data, isLoading, error } = useDrafts();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16 text-text-muted">
-        <span className="font-mono text-xs">Loading drafts...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    const errMsg = error instanceof ApiClientError ? error.message : "Failed to load drafts";
-    const needsSetup = error instanceof ApiClientError && error.code === "llm_not_configured";
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16">
-        <AlertTriangle size={24} strokeWidth={1} className="text-text-muted" />
-        <span className="font-mono text-xs text-text-muted">{errMsg}</span>
-        {needsSetup && (
-          <Link to="/settings" className="font-mono text-[10px] text-accent underline hover:opacity-80">
-            Go to Settings
-          </Link>
-        )}
-      </div>
-    );
-  }
+function InProgressPanel() {
+  const { data, isLoading } = useLlmInProgress();
 
   const cards = data?.data ?? [];
 
-  if (cards.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16">
-        <Bot size={24} strokeWidth={1} className="text-text-muted" />
-        <span className="font-mono text-xs text-text-muted">
-          No drafts to review
-        </span>
-      </div>
-    );
+  // Don't render if loading or empty
+  if (isLoading || cards.length === 0) {
+    return null;
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <div className="flex flex-col gap-3">
-        {cards.map((card) => (
-          <DraftCard key={card.id} card={card} />
-        ))}
+    <div className="mx-auto max-w-2xl px-6 pb-6">
+      <div className="border-t border-border pt-4">
+        <span className="mb-3 block font-mono text-[10px] font-medium uppercase tracking-wider text-text-muted">
+          LLM In Progress
+        </span>
+        <div className="flex flex-col gap-1.5">
+          {cards.map((card) => (
+            <InProgressCard key={card.id} card={card} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function DraftCard({ card }: { card: Card }) {
-  const approve = useApproveDraft();
-  const reject = useRejectDraft();
-  const revise = useReviseDraft();
-  const [showRevise, setShowRevise] = useState(false);
-  const [feedback, setFeedback] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [needsSetup, setNeedsSetup] = useState(false);
-
-  const isPending = approve.isPending || reject.isPending || revise.isPending;
-
-  function handleError(err: unknown) {
-    if (err instanceof ApiClientError) {
-      setError(err.message);
-      setNeedsSetup(err.code === "llm_not_configured");
-    } else {
-      setError("An unexpected error occurred");
-    }
-  }
+function InProgressCard({ card }: { card: Card }) {
+  // Determine status from the card's status field
+  const isWorking = card.status === "working";
+  const statusLabel = isWorking ? "Working" : "Queued";
 
   return (
-    <div className="border border-border bg-bg-panel p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <span className="inline-flex shrink-0 bg-text-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase leading-none text-white">
-          {card.card_type}
-        </span>
-        <h3 className="text-sm font-semibold text-text">{card.title}</h3>
-      </div>
-
-      {card.tags.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1">
-          {card.tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 border border-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-text-secondary"
-            >
-              <Tag size={9} strokeWidth={1.5} />
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {card.summary && (
-        <pre className="mb-3 whitespace-pre-wrap font-mono text-xs leading-relaxed text-text-secondary">
-          {card.summary}
-        </pre>
-      )}
-
-      {showRevise ? (
-        <div className="border-t border-border pt-3">
-          <textarea
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="Enter revision feedback..."
-            className="mb-2 w-full border border-border bg-bg p-2 font-mono text-xs text-text placeholder:text-text-muted focus:border-accent focus:outline-none"
-            rows={3}
-          />
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (!feedback.trim()) return;
-                revise.mutate({ id: card.id, feedback: feedback.trim() }, { onError: handleError });
-              }}
-              disabled={isPending || !feedback.trim()}
-              className="inline-flex items-center gap-1.5 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
-            >
-              <Send size={12} strokeWidth={1.5} />
-              Send Feedback
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowRevise(false); setFeedback(""); }}
-              className="px-2.5 py-1.5 font-mono text-[10px] text-text-muted hover:text-text"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+    <div className="flex items-center gap-2.5 border border-border bg-bg-panel px-3 py-2">
+      {isWorking ? (
+        <Loader2 size={12} strokeWidth={1.5} className="shrink-0 animate-spin text-purple-400" />
       ) : (
-        <div className="flex items-center gap-2 border-t border-border pt-3">
-          <button
-            type="button"
-            onClick={() => approve.mutate(card.id, { onError: handleError })}
-            disabled={isPending}
-            className="inline-flex items-center gap-1.5 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
-          >
-            <Check size={12} strokeWidth={2} />
-            Approve
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowRevise(true)}
-            disabled={isPending}
-            className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[10px] font-medium text-text-secondary transition-colors hover:text-text disabled:opacity-50"
-          >
-            <RotateCcw size={12} strokeWidth={1.5} />
-            Revise
-          </button>
-          <button
-            type="button"
-            onClick={() => reject.mutate(card.id, { onError: handleError })}
-            disabled={isPending}
-            className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[10px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50"
-          >
-            <X size={12} strokeWidth={1.5} />
-            Reject
-          </button>
-        </div>
+        <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-yellow-400" />
       )}
-
-      {error && (
-        <div className="mt-3 flex items-start gap-2 border border-red-400/30 bg-red-400/5 p-3">
-          <AlertTriangle size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-red-400" />
-          <div className="flex flex-col gap-1">
-            <span className="font-mono text-[10px] text-red-400">{error}</span>
-            {needsSetup && (
-              <Link to="/settings" className="font-mono text-[10px] text-accent underline hover:opacity-80">
-                Go to Settings
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
+      <span className="flex-1 truncate font-mono text-xs text-text">
+        {card.title}
+      </span>
+      <span
+        className={`inline-flex shrink-0 px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none ${
+          isWorking
+            ? "bg-purple-500/15 text-purple-400"
+            : "bg-yellow-500/15 text-yellow-400"
+        }`}
+      >
+        {statusLabel}
+      </span>
     </div>
   );
 }

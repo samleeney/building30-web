@@ -2,7 +2,6 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import {
-  Inbox,
   Sun,
   ArrowRight,
   FolderKanban,
@@ -19,8 +18,7 @@ import {
 import { NewCardDialog } from "../NewCardDialog";
 
 const navItems = [
-  { to: "/inbox", label: "Inbox", icon: Inbox },
-  { to: "/action", label: "Action", icon: Zap },
+  { to: "/action", label: "Action Center", icon: Zap },
   { to: "/today", label: "Today", icon: Sun },
   { to: "/next", label: "Next", icon: ArrowRight },
   { to: "/projects", label: "Projects", icon: FolderKanban },

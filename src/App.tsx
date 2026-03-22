@@ -63,7 +63,7 @@ function App() {
           </div>
         } />
         <Route element={<AuthGate />}>
-          <Route index element={<Navigate to="/inbox" replace />} />
+          <Route index element={<Navigate to="/action" replace />} />
           <Route path="inbox" element={<InboxView />} />
           <Route path="action" element={<ActionCenter />} />
           <Route path="today" element={<TodayView />} />
@@ -75,7 +75,7 @@ function App() {
           <Route path="reference" element={<ReferenceView />} />
           <Route path="settings" element={<SettingsView />} />
         </Route>
-        <Route path="*" element={<Navigate to="/inbox" replace />} />
+        <Route path="*" element={<Navigate to="/action" replace />} />
       </Route>
     </Routes>
   );
