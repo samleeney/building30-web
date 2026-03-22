@@ -10,6 +10,7 @@ import { WaitingView } from "./pages/WaitingView";
 import { SomedayView } from "./pages/SomedayView";
 import { ReferenceView } from "./pages/ReferenceView";
 import { ActionCenter } from "./pages/ActionCenter";
+import { SettingsView } from "./pages/SettingsView";
 
 function Layout() {
   return (
@@ -72,6 +73,7 @@ function App() {
           <Route path="waiting" element={<WaitingView />} />
           <Route path="someday" element={<SomedayView />} />
           <Route path="reference" element={<ReferenceView />} />
+          <Route path="settings" element={<SettingsView />} />
         </Route>
         <Route path="*" element={<Navigate to="/inbox" replace />} />
       </Route>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { Link } from "react-router-dom";
 import {
   Zap,
   Archive,
@@ -12,7 +13,9 @@ import {
   Bot,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
+import { ApiClientError } from "../lib/api-client";
 import { useEventStream } from "../lib/hooks/use-event-stream";
 import { useCard } from "../lib/hooks/use-cards";
 import {
@@ -169,6 +172,8 @@ function TriageWizard({ card }: { card: Card }) {
   const [showTagInput, setShowTagInput] = useState(false);
   const [project, setProject] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [triageError, setTriageError] = useState<string | null>(null);
+  const [isLlmNotConfigured, setIsLlmNotConfigured] = useState(false);
 
   const tagInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,6 +203,8 @@ function TriageWizard({ card }: { card: Card }) {
   }
 
   function handleSubmit() {
+    setTriageError(null);
+    setIsLlmNotConfigured(false);
     triage.mutate(
       {
         id: card.id,
@@ -205,7 +212,17 @@ function TriageWizard({ card }: { card: Card }) {
         tags: tags.length > 0 ? tags : undefined,
         project_id: project || undefined,
       },
-      { onSuccess: () => setSubmitted(true) },
+      {
+        onSuccess: () => setSubmitted(true),
+        onError: (err) => {
+          if (err instanceof ApiClientError && err.code === "llm_not_configured") {
+            setIsLlmNotConfigured(true);
+            setTriageError(err.message);
+          } else {
+            setTriageError((err as Error).message || "Failed to triage card");
+          }
+        },
+      },
     );
   }
 
@@ -382,6 +399,23 @@ function TriageWizard({ card }: { card: Card }) {
           Archive
         </button>
       </div>
+
+      {triageError && (
+        <div className="mt-3 flex items-start gap-2 border border-red-400/30 bg-red-400/5 p-3">
+          <AlertTriangle size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-red-400" />
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-[10px] text-red-400">{triageError}</span>
+            {isLlmNotConfigured && (
+              <Link
+                to="/settings"
+                className="font-mono text-[10px] text-accent underline hover:opacity-80"
+              >
+                Go to Settings
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

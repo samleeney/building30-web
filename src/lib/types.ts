@@ -118,6 +118,20 @@ export interface TagStat {
   deprecated_in_favour_of?: string | null;
 }
 
+// ── Settings ─────────────────────────────────────────────────
+
+export interface Settings {
+  provider: string | null;
+  has_key: boolean;
+  model: string | null;
+}
+
+export interface UpdateSettingsRequest {
+  provider?: string;
+  api_key?: string;
+  model?: string;
+}
+
 // ── API response envelopes ──────────────────────────────────
 
 export interface ApiError {

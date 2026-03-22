@@ -14,6 +14,7 @@ import {
   Plus,
   LogIn,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { NewCardDialog } from "../NewCardDialog";
 
@@ -87,6 +88,19 @@ export function Sidebar() {
                   {user.name}
                 </span>
               )}
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-2.5 py-1.5 text-sm transition-colors ${
+                    isActive
+                      ? "bg-accent text-white"
+                      : "text-text-secondary hover:bg-bg-hover hover:text-text"
+                  }`
+                }
+              >
+                <Settings size={15} strokeWidth={1.5} />
+                Settings
+              </NavLink>
               <button
                 type="button"
                 onClick={() =>
