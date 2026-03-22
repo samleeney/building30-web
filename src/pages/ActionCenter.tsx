@@ -459,9 +459,6 @@ function TriageMetadata({ card }: { card: CardDetailType }) {
 
 function DraftReviewSection() {
   const { data, isLoading, error } = useDrafts();
-  const approve = useApproveDraft();
-  const reject = useRejectDraft();
-  const revise = useReviseDraft();
 
   if (isLoading) {
     return (
@@ -472,9 +469,17 @@ function DraftReviewSection() {
   }
 
   if (error) {
+    const errMsg = error instanceof ApiClientError ? error.message : "Failed to load drafts";
+    const needsSetup = error instanceof ApiClientError && error.code === "llm_not_configured";
     return (
-      <div className="flex items-center justify-center py-16 text-text-muted">
-        <span className="font-mono text-xs">Failed to load drafts</span>
+      <div className="flex flex-col items-center justify-center gap-3 py-16">
+        <AlertTriangle size={24} strokeWidth={1} className="text-text-muted" />
+        <span className="font-mono text-xs text-text-muted">{errMsg}</span>
+        {needsSetup && (
+          <Link to="/settings" className="font-mono text-[10px] text-accent underline hover:opacity-80">
+            Go to Settings
+          </Link>
+        )}
       </div>
     );
   }
@@ -496,35 +501,33 @@ function DraftReviewSection() {
     <div className="mx-auto max-w-2xl p-6">
       <div className="flex flex-col gap-3">
         {cards.map((card) => (
-          <DraftCard
-            key={card.id}
-            card={card}
-            onApprove={() => approve.mutate(card.id)}
-            onReject={() => reject.mutate(card.id)}
-            onRevise={() => revise.mutate(card.id)}
-            isPending={
-              approve.isPending || reject.isPending || revise.isPending
-            }
-          />
+          <DraftCard key={card.id} card={card} />
         ))}
       </div>
     </div>
   );
 }
 
-function DraftCard({
-  card,
-  onApprove,
-  onReject,
-  onRevise,
-  isPending,
-}: {
-  card: Card;
-  onApprove: () => void;
-  onReject: () => void;
-  onRevise: () => void;
-  isPending: boolean;
-}) {
+function DraftCard({ card }: { card: Card }) {
+  const approve = useApproveDraft();
+  const reject = useRejectDraft();
+  const revise = useReviseDraft();
+  const [showRevise, setShowRevise] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
+  const isPending = approve.isPending || reject.isPending || revise.isPending;
+
+  function handleError(err: unknown) {
+    if (err instanceof ApiClientError) {
+      setError(err.message);
+      setNeedsSetup(err.code === "llm_not_configured");
+    } else {
+      setError("An unexpected error occurred");
+    }
+  }
+
   return (
     <div className="border border-border bg-bg-panel p-4">
       <div className="mb-2 flex items-center gap-2">
@@ -554,35 +557,82 @@ function DraftCard({
         </pre>
       )}
 
-      <div className="flex items-center gap-2 border-t border-border pt-3">
-        <button
-          type="button"
-          onClick={onApprove}
-          disabled={isPending}
-          className="inline-flex items-center gap-1.5 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
-        >
-          <Check size={12} strokeWidth={2} />
-          Approve
-        </button>
-        <button
-          type="button"
-          onClick={onRevise}
-          disabled={isPending}
-          className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[10px] font-medium text-text-secondary transition-colors hover:text-text disabled:opacity-50"
-        >
-          <RotateCcw size={12} strokeWidth={1.5} />
-          Revise
-        </button>
-        <button
-          type="button"
-          onClick={onReject}
-          disabled={isPending}
-          className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[10px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50"
-        >
-          <X size={12} strokeWidth={1.5} />
-          Reject
-        </button>
-      </div>
+      {showRevise ? (
+        <div className="border-t border-border pt-3">
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Enter revision feedback..."
+            className="mb-2 w-full border border-border bg-bg p-2 font-mono text-xs text-text placeholder:text-text-muted focus:border-accent focus:outline-none"
+            rows={3}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (!feedback.trim()) return;
+                revise.mutate({ id: card.id, feedback: feedback.trim() }, { onError: handleError });
+              }}
+              disabled={isPending || !feedback.trim()}
+              className="inline-flex items-center gap-1.5 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+            >
+              <Send size={12} strokeWidth={1.5} />
+              Send Feedback
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowRevise(false); setFeedback(""); }}
+              className="px-2.5 py-1.5 font-mono text-[10px] text-text-muted hover:text-text"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 border-t border-border pt-3">
+          <button
+            type="button"
+            onClick={() => approve.mutate(card.id, { onError: handleError })}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+          >
+            <Check size={12} strokeWidth={2} />
+            Approve
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRevise(true)}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[10px] font-medium text-text-secondary transition-colors hover:text-text disabled:opacity-50"
+          >
+            <RotateCcw size={12} strokeWidth={1.5} />
+            Revise
+          </button>
+          <button
+            type="button"
+            onClick={() => reject.mutate(card.id, { onError: handleError })}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[10px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50"
+          >
+            <X size={12} strokeWidth={1.5} />
+            Reject
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-3 flex items-start gap-2 border border-red-400/30 bg-red-400/5 p-3">
+          <AlertTriangle size={13} strokeWidth={1.5} className="mt-0.5 shrink-0 text-red-400" />
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-[10px] text-red-400">{error}</span>
+            {needsSetup && (
+              <Link to="/settings" className="font-mono text-[10px] text-accent underline hover:opacity-80">
+                Go to Settings
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

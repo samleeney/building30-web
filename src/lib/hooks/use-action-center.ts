@@ -56,7 +56,7 @@ export function useDrafts() {
     queryKey: ["cards", "drafts"],
     queryFn: () =>
       api.get<PaginatedResponse<Card>>(
-        "/api/cards?assigned=llm&llm_status=draft_ready",
+        "/api/llm/queue",
       ),
   });
 }
@@ -67,10 +67,9 @@ export function useApproveDraft() {
 
   return useMutation({
     mutationFn: (cardId: string) =>
-      api.post<MessageResponse>(`/api/cards/${cardId}/approve`),
-    onSuccess: (_data, cardId) => {
+      api.post<MessageResponse>("/api/llm/approve", { id: cardId }),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cards"] });
-      qc.invalidateQueries({ queryKey: ["card", cardId] });
       qc.invalidateQueries({ queryKey: ["views"] });
     },
   });
@@ -82,13 +81,18 @@ export function useRejectDraft() {
 
   return useMutation({
     mutationFn: (cardId: string) =>
-      api.post<MessageResponse>(`/api/cards/${cardId}/reject`),
-    onSuccess: (_data, cardId) => {
+      api.post<MessageResponse>("/api/llm/reject", { id: cardId }),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cards"] });
-      qc.invalidateQueries({ queryKey: ["card", cardId] });
       qc.invalidateQueries({ queryKey: ["views"] });
+      qc.invalidateQueries({ queryKey: ["action-queue"] });
     },
   });
+}
+
+export interface ReviseRequest {
+  id: string;
+  feedback: string;
 }
 
 export function useReviseDraft() {
@@ -96,11 +100,10 @@ export function useReviseDraft() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (cardId: string) =>
-      api.post<MessageResponse>(`/api/cards/${cardId}/revise`),
-    onSuccess: (_data, cardId) => {
+    mutationFn: (body: ReviseRequest) =>
+      api.post<MessageResponse>("/api/llm/revise", body),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cards"] });
-      qc.invalidateQueries({ queryKey: ["card", cardId] });
       qc.invalidateQueries({ queryKey: ["views"] });
     },
   });
