@@ -120,16 +120,49 @@ export interface TagStat {
 
 // ── Settings ─────────────────────────────────────────────────
 
+export interface EmailAccount {
+  name: string;
+  provider: "gmail" | "outlook" | "custom";
+  email: string;
+  has_password: boolean;
+  imap_host?: string;
+  imap_port?: number;
+  smtp_host?: string;
+  smtp_port?: number;
+  enabled: boolean;
+  sync_interval_secs?: number;
+}
+
+export interface EmailAccountInput {
+  name: string;
+  provider: "gmail" | "outlook" | "custom";
+  email: string;
+  password?: string;
+  imap_host?: string;
+  imap_port?: number;
+  smtp_host?: string;
+  smtp_port?: number;
+  enabled: boolean;
+  sync_interval_secs?: number;
+}
+
 export interface Settings {
   provider: string | null;
   has_key: boolean;
   model: string | null;
+  email_accounts: EmailAccount[];
 }
 
 export interface UpdateSettingsRequest {
   provider?: string;
   api_key?: string;
   model?: string;
+  email_accounts?: EmailAccountInput[];
+}
+
+export interface TestEmailResponse {
+  success: boolean;
+  error?: string;
 }
 
 // ── API response envelopes ──────────────────────────────────
