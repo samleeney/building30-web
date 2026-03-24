@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Settings as SettingsIcon,
   Check,
@@ -8,13 +9,18 @@ import {
   Trash2,
   X,
   RefreshCw,
+  Link,
+  Unlink,
 } from "lucide-react";
 import {
   useSettings,
   useUpdateSettings,
   useTestEmail,
+  useDisconnectEmail,
 } from "../lib/hooks/use-settings";
 import type { EmailAccountInput } from "../lib/types";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const PROVIDERS = [
   { value: "anthropic", label: "Anthropic (Claude)" },
@@ -84,6 +90,8 @@ function providerLabel(provider: string): string {
 interface LocalEmailAccount extends EmailAccountInput {
   /** Whether this account already has a password on the server */
   has_password_on_server: boolean;
+  /** Whether this account has OAuth tokens on the server */
+  has_oauth_on_server: boolean;
   /** Local password field (empty string = keep existing) */
   local_password: string;
 }
@@ -94,6 +102,8 @@ export function SettingsView() {
   const { data: settings, isLoading, error } = useSettings();
   const updateSettings = useUpdateSettings();
   const testEmail = useTestEmail();
+  const disconnectEmail = useDisconnectEmail();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // LLM state
   const [provider, setProvider] = useState("anthropic");
@@ -111,6 +121,31 @@ export function SettingsView() {
   const [testResults, setTestResults] = useState<
     Record<number, { success: boolean; error?: string; testing: boolean }>
   >({});
+
+  // Check URL params for OAuth callback results
+  useEffect(() => {
+    const emailConnected = searchParams.get("email_connected");
+    const emailError = searchParams.get("email_error");
+
+    if (emailConnected) {
+      setFeedback({
+        type: "success",
+        message: `${providerLabel(emailConnected)} account connected successfully`,
+      });
+      // Clean up URL params
+      searchParams.delete("email_connected");
+      setSearchParams(searchParams, { replace: true });
+      setTimeout(() => setFeedback(null), 5000);
+    } else if (emailError) {
+      setFeedback({
+        type: "error",
+        message: `Failed to connect email: ${emailError}`,
+      });
+      searchParams.delete("email_error");
+      setSearchParams(searchParams, { replace: true });
+      setTimeout(() => setFeedback(null), 5000);
+    }
+  }, [searchParams, setSearchParams]);
 
   // Sync form state when settings load
   useEffect(() => {
@@ -131,6 +166,7 @@ export function SettingsView() {
           enabled: a.enabled,
           sync_interval_secs: a.sync_interval_secs,
           has_password_on_server: a.has_password,
+          has_oauth_on_server: a.has_oauth,
           local_password: "",
         })),
       );
@@ -198,6 +234,7 @@ export function SettingsView() {
       smtp_port: defaults?.smtp_port,
       enabled: true,
       has_password_on_server: false,
+      has_oauth_on_server: false,
       local_password: "",
     };
     setEmailAccounts((prev) => [...prev, acct]);
@@ -210,6 +247,21 @@ export function SettingsView() {
       const next = { ...prev };
       delete next[index];
       return next;
+    });
+  }
+
+  function handleDisconnectEmail(index: number) {
+    disconnectEmail.mutate(index, {
+      onSuccess: () => {
+        setFeedback({ type: "success", message: "Email account disconnected" });
+        setTimeout(() => setFeedback(null), 3000);
+      },
+      onError: (err) => {
+        setFeedback({
+          type: "error",
+          message: (err as Error).message || "Failed to disconnect account",
+        });
+      },
     });
   }
 
@@ -265,6 +317,11 @@ export function SettingsView() {
     });
   }
 
+  function handleConnectOAuth(provider: "gmail" | "outlook") {
+    // Redirect to server OAuth start endpoint (full page redirect)
+    window.location.href = `${API_URL}/api/auth/${provider}/start`;
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16 text-text-muted">
@@ -282,6 +339,14 @@ export function SettingsView() {
       </div>
     );
   }
+
+  // Separate OAuth-connected accounts from manually-configured ones
+  const oauthAccounts = emailAccounts.filter((a) => a.has_oauth_on_server);
+  const manualAccounts = emailAccounts.filter((a) => !a.has_oauth_on_server);
+
+  // Check which OAuth providers are already connected
+  const hasGmailOAuth = oauthAccounts.some((a) => a.provider === "gmail");
+  const hasOutlookOAuth = oauthAccounts.some((a) => a.provider === "outlook");
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -381,17 +446,60 @@ export function SettingsView() {
                   className="inline-flex items-center gap-1 font-mono text-[10px] text-text-muted transition-colors hover:text-text"
                 >
                   <Plus size={12} strokeWidth={2} />
-                  Add Account
+                  Add Manual
                 </button>
               )}
             </div>
 
-            {/* Add account form */}
+            {/* OAuth connect buttons */}
+            <div className="mb-4 flex items-center gap-3">
+              {!hasGmailOAuth && (
+                <button
+                  type="button"
+                  onClick={() => handleConnectOAuth("gmail")}
+                  className="inline-flex items-center gap-1.5 border border-red-500/30 bg-red-500/10 px-3 py-1.5 font-mono text-[10px] font-medium text-red-400 transition-colors hover:bg-red-500/20"
+                >
+                  <Link size={11} strokeWidth={2} />
+                  Connect Gmail
+                </button>
+              )}
+              {!hasOutlookOAuth && (
+                <button
+                  type="button"
+                  onClick={() => handleConnectOAuth("outlook")}
+                  className="inline-flex items-center gap-1.5 border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 font-mono text-[10px] font-medium text-blue-400 transition-colors hover:bg-blue-500/20"
+                >
+                  <Link size={11} strokeWidth={2} />
+                  Connect Outlook
+                </button>
+              )}
+            </div>
+
+            {/* OAuth-connected accounts */}
+            {oauthAccounts.length > 0 && (
+              <div className="mb-4 space-y-3">
+                {oauthAccounts.map((account, _localIdx) => {
+                  // Find the real index in the full emailAccounts array
+                  const realIndex = emailAccounts.indexOf(account);
+                  return (
+                    <OAuthAccountCard
+                      key={realIndex}
+                      account={account}
+                      index={realIndex}
+                      onDisconnect={handleDisconnectEmail}
+                      isDisconnecting={disconnectEmail.isPending}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add manual account form */}
             {showAddForm && (
               <div className="mb-4 border border-border bg-bg p-3">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-text-muted">
-                    New Account
+                    New Manual Account
                   </span>
                   <button
                     type="button"
@@ -430,26 +538,31 @@ export function SettingsView() {
               </div>
             )}
 
-            {/* Account list */}
-            {emailAccounts.length === 0 && !showAddForm && (
-              <p className="font-mono text-[10px] text-text-muted">
-                No email accounts configured. Add one to sync emails into your
-                GTD inbox.
-              </p>
-            )}
+            {/* Manual account list */}
+            {manualAccounts.length === 0 &&
+              oauthAccounts.length === 0 &&
+              !showAddForm && (
+                <p className="font-mono text-[10px] text-text-muted">
+                  No email accounts configured. Connect Gmail or Outlook above,
+                  or add a manual IMAP account.
+                </p>
+              )}
 
             <div className="space-y-3">
-              {emailAccounts.map((account, index) => (
-                <EmailAccountCard
-                  key={index}
-                  account={account}
-                  index={index}
-                  testResult={testResults[index]}
-                  onUpdate={updateEmailAccount}
-                  onRemove={removeEmailAccount}
-                  onTest={handleTestConnection}
-                />
-              ))}
+              {manualAccounts.map((account, _localIdx) => {
+                const realIndex = emailAccounts.indexOf(account);
+                return (
+                  <EmailAccountCard
+                    key={realIndex}
+                    account={account}
+                    index={realIndex}
+                    testResult={testResults[realIndex]}
+                    onUpdate={updateEmailAccount}
+                    onRemove={removeEmailAccount}
+                    onTest={handleTestConnection}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -481,6 +594,58 @@ export function SettingsView() {
               </span>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── OAuth Account Card ────────────────────────────────────────
+
+function OAuthAccountCard({
+  account,
+  index,
+  onDisconnect,
+  isDisconnecting,
+}: {
+  account: LocalEmailAccount;
+  index: number;
+  onDisconnect: (index: number) => void;
+  isDisconnecting: boolean;
+}) {
+  return (
+    <div className="border border-border bg-bg p-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-block border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase ${providerBadgeColor(account.provider)}`}
+          >
+            {providerLabel(account.provider)}
+          </span>
+          <span className="font-mono text-xs text-text-secondary">
+            {account.email}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-green-400 border border-green-500/30">
+            <Check size={9} strokeWidth={2.5} />
+            Connected
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <span className="font-mono text-[10px] text-text-muted">
+              {account.enabled ? "Enabled" : "Disabled"}
+            </span>
+          </label>
+          <button
+            type="button"
+            onClick={() => onDisconnect(index)}
+            disabled={isDisconnecting}
+            className="inline-flex items-center gap-1 font-mono text-[10px] text-text-muted transition-colors hover:text-red-400 disabled:opacity-50"
+            title="Disconnect account"
+          >
+            <Unlink size={11} strokeWidth={2} />
+            Disconnect
+          </button>
         </div>
       </div>
     </div>

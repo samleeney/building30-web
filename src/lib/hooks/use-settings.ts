@@ -34,3 +34,16 @@ export function useTestEmail() {
       }),
   });
 }
+
+export function useDisconnectEmail() {
+  const api = useApiClient();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accountIndex: number) =>
+      api.delete<Settings>(`/api/settings/email/${accountIndex}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
+}

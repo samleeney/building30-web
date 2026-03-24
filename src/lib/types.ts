@@ -125,6 +125,7 @@ export interface EmailAccount {
   provider: "gmail" | "outlook" | "custom";
   email: string;
   has_password: boolean;
+  has_oauth: boolean;
   imap_host?: string;
   imap_port?: number;
   smtp_host?: string;
