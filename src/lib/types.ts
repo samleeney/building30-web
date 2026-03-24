@@ -132,38 +132,6 @@ export interface UpdateSettingsRequest {
   model?: string;
 }
 
-// ── Plugins / Data Sources ───────────────────────────────────
-
-export interface PluginInfo {
-  name: string;
-  display_name: string;
-  description: string;
-  enabled: boolean;
-  last_sync: string | null;
-  sync_interval_secs: number;
-  config_schema: ConfigField[];
-}
-
-export interface ConfigField {
-  key: string;
-  label: string;
-  field_type: string; // "text" | "password" | "number" | "boolean"
-  required: boolean;
-  placeholder?: string;
-}
-
-export interface PluginConfig {
-  info: PluginInfo;
-  config: Record<string, unknown>;
-}
-
-export interface SyncReport {
-  created: number;
-  updated: number;
-  deleted: number;
-  errors: string[];
-}
-
 // ── API response envelopes ──────────────────────────────────
 
 export interface ApiError {
