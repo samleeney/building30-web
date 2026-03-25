@@ -9,15 +9,18 @@ import {
   Clock,
   Lightbulb,
   BookOpen,
+  Mail,
   Zap,
   Plus,
   LogIn,
   LogOut,
   Settings,
 } from "lucide-react";
+import { useEmails } from "../../lib/hooks/use-emails";
 import { NewCardDialog } from "../NewCardDialog";
 
 const navItems = [
+  { to: "/emails", label: "Emails", icon: Mail },
   { to: "/action", label: "Action Center", icon: Zap },
   { to: "/today", label: "Today", icon: Sun },
   { to: "/next", label: "Next", icon: ArrowRight },
@@ -57,20 +60,7 @@ export function Sidebar() {
 
         <nav className="flex flex-1 flex-col gap-0.5 p-2">
           {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-2.5 py-1.5 text-sm transition-colors ${
-                  isActive
-                    ? "bg-accent text-white"
-                    : "text-text-secondary hover:bg-bg-hover hover:text-text"
-                }`
-              }
-            >
-              <Icon size={15} strokeWidth={1.5} />
-              {label}
-            </NavLink>
+            <NavItem key={to} to={to} label={label} icon={Icon} isAuthenticated={isAuthenticated} />
           ))}
         </nav>
 
@@ -125,5 +115,50 @@ export function Sidebar() {
 
       <NewCardDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </>
+  );
+}
+
+function NavItem({
+  to,
+  label,
+  icon: Icon,
+  isAuthenticated,
+}: {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  isAuthenticated: boolean;
+}) {
+  // Only fetch email count for the Emails nav item when authenticated
+  const showBadge = to === "/emails" && isAuthenticated;
+
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-2.5 px-2.5 py-1.5 text-sm transition-colors ${
+          isActive
+            ? "bg-accent text-white"
+            : "text-text-secondary hover:bg-bg-hover hover:text-text"
+        }`
+      }
+    >
+      <Icon size={15} strokeWidth={1.5} />
+      <span className="flex-1">{label}</span>
+      {showBadge && <EmailBadge />}
+    </NavLink>
+  );
+}
+
+function EmailBadge() {
+  const { data } = useEmails();
+  const count = data?.data?.length ?? 0;
+
+  if (count === 0) return null;
+
+  return (
+    <span className="inline-flex min-w-[18px] items-center justify-center bg-accent px-1 py-0.5 font-mono text-[9px] font-bold leading-none text-white">
+      {count}
+    </span>
   );
 }

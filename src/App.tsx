@@ -10,6 +10,7 @@ import { WaitingView } from "./pages/WaitingView";
 import { SomedayView } from "./pages/SomedayView";
 import { ReferenceView } from "./pages/ReferenceView";
 import { ActionCenter } from "./pages/ActionCenter";
+import { EmailsView } from "./pages/EmailsView";
 import { SettingsView } from "./pages/SettingsView";
 
 function Layout() {
@@ -64,6 +65,7 @@ function App() {
         } />
         <Route element={<AuthGate />}>
           <Route index element={<Navigate to="/action" replace />} />
+          <Route path="emails" element={<EmailsView />} />
           <Route path="inbox" element={<InboxView />} />
           <Route path="action" element={<ActionCenter />} />
           <Route path="today" element={<TodayView />} />
