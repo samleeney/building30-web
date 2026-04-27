@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, useNavigate } from 'react-router-dom'
 import { Auth0Provider } from '@auth0/auth0-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 import App from './App'
 
@@ -37,6 +38,7 @@ createRoot(document.getElementById('root')!).render(
       <Auth0ProviderWithNavigate>
         <QueryClientProvider client={queryClient}>
           <App />
+          <Analytics />
         </QueryClientProvider>
       </Auth0ProviderWithNavigate>
     </BrowserRouter>
